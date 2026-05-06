@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# 虚拟环境
+venv/
+.venv/
+env/
+
+# 检查点 / 模型权重
+checkpoints/
+*.pt
+*.pth
+*.bin
+
+# 生成的样本 / 输出
+samples/
+log.txt
+
+# 隐空间缓存
+*latents*.pt
+
+# IDE / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 配置中的绝对路径（用户相关）
+# 不排除 config.yaml 本身，但里面含用户路径
+
+# git 相关
+*.orig
+*.bak

@@ -1,0 +1,132 @@
+# config.yaml
+# ==========================================
+# SplitMeanFlow 蒸馏项目全局配置
+# ==========================================
+
+# ------------------------------------------
+# 1. 核心数据与标签 (50类, ID 0-49)
+# ------------------------------------------
+data:
+  image_root: /root/autodl-tmp/imagenet_50classes/train
+  latent_size: 32
+  in_channels: 4
+  classes:
+    # 鱼类 (0-4)
+    tench: {id: 0, wnid: "n01440764"}
+    goldfish: {id: 1, wnid: "n01443537"}
+    great_white_shark: {id: 2, wnid: "n01491361"}
+    tiger_shark: {id: 3, wnid: "n01494475"}
+    stingray: {id: 4, wnid: "n01498041"}
+    # 鸟类 (5-9)
+    ostrich: {id: 5, wnid: "n01514859"}
+    bald_eagle: {id: 6, wnid: "n01608432"}
+    great_grey_owl: {id: 7, wnid: "n01614925"}
+    pelican: {id: 8, wnid: "n01616318"}
+    penguin: {id: 9, wnid: "n01630670"}
+    # 犬类 (10-19)
+    chihuahua: {id: 10, wnid: "n02085620"}
+    shih_tzu: {id: 11, wnid: "n02085782"}
+    beagle: {id: 12, wnid: "n02086646"}
+    rottweiler: {id: 13, wnid: "n02090622"}
+    german_shepherd: {id: 14, wnid: "n02091244"}
+    labrador_retriever: {id: 15, wnid: "n02099601"}
+    golden_retriever: {id: 16, wnid: "n02100735"}
+    boxer: {id: 17, wnid: "n02106550"}
+    poodle: {id: 18, wnid: "n02113624"}
+    dalmatian: {id: 19, wnid: "n02110341"}
+    # 猫科 (20-24)
+    siamese_cat: {id: 20, wnid: "n02123394"}
+    bengal_cat: {id: 21, wnid: "n02123045"}
+    tabby_cat: {id: 22, wnid: "n02124075"}
+    leopard: {id: 23, wnid: "n02128385"}
+    tiger: {id: 24, wnid: "n02129604"}
+    # 熊类 (25-27)
+    brown_bear: {id: 25, wnid: "n02132136"}
+    polar_bear: {id: 26, wnid: "n02134418"}
+    panda: {id: 27, wnid: "n02510455"}
+    # 其他哺乳动物 (28-34)
+    elephant: {id: 28, wnid: "n02504458"}
+    camel: {id: 29, wnid: "n02437312"}
+    hippopotamus: {id: 30, wnid: "n02397096"}
+    deer: {id: 31, wnid: "n02441942"}
+    zebra: {id: 32, wnid: "n02391049"}
+    giraffe: {id: 33, wnid: "n02422699"}
+    monkey: {id: 34, wnid: "n02494079"}
+    # 昆虫 (35-38)
+    monarch_butterfly: {id: 35, wnid: "n02279972"}
+    ant: {id: 36, wnid: "n02165456"}
+    bee: {id: 37, wnid: "n02281406"}
+    beetle: {id: 38, wnid: "n02177972"}
+    # 爬行类 (39-42)
+    snake: {id: 39, wnid: "n01751748"}
+    turtle: {id: 40, wnid: "n01667778"}
+    lizard: {id: 41, wnid: "n01677366"}
+    crocodile: {id: 42, wnid: "n01698640"}
+    # 食物 (43-49)
+    pizza: {id: 43, wnid: "n07873807"}
+    cheeseburger: {id: 44, wnid: "n07697313"}
+    hotdog: {id: 45, wnid: "n07697537"}
+    sushi: {id: 46, wnid: "n07860988"}
+    french_fries: {id: 47, wnid: "n07693725"}
+    cake: {id: 48, wnid: "n07613480"}
+    donut: {id: 49, wnid: "n07695742"}
+
+# ------------------------------------------
+# 2. 网络架构配置
+# ------------------------------------------
+models:
+  vae:
+    pretrained_path: /root/autodl-tmp/sd-vae-ft-mse-diffusers
+    scale_factor: 0.18215
+    latent_path: /root/autodl-tmp/imagenet_50classes_latents.pt
+
+  dit:
+    input_size: 32
+    patch_size: 2
+    in_channels: 4
+    hidden_size: 1152
+    depth: 28
+    num_heads: 16
+    mlp_ratio: 4.0
+
+# ------------------------------------------
+# 3. 训练超参数
+# ------------------------------------------
+stage1_teacher:
+  batch_size: 64
+  lr: 5.0e-5
+  total_steps: 5000
+  pretrained_path: /root/autodl-tmp/SiT-XL-2-256.pt
+  save_path: checkpoints/teacher
+
+stage2_student:
+  batch_size: 16
+  accumulate_steps: 4
+  total_steps: 10000
+  lr: 1.0e-5
+  # 冻结学生 SiT 网络的层数，网络浅层捕捉基础视觉特征，中层捕捉局部特征，深层捕捉全局语义
+  # 这里冻结 15 层，保留开源模型的部分基础特征捕捉能力，节约算力
+  freeze_layers: 15
+  # 损失权重配置
+  loss_weights:
+    boundary: 1.0
+    split: 1.0
+  teacher_path: checkpoints/teacher/teacher_ema_step_5000.pt
+  save_path: checkpoints/student
+
+# ------------------------------------------
+# 4. 采样与评估配置
+# ------------------------------------------
+sampling:
+  ckpt_path: checkpoints/student/student_ema_best.pt
+  save_dir: samples/student
+  batch_size: 64
+  num_samples_per_class: 320
+  NFEs: [4, 10]
+  cfg_scales: [7, 4]
+
+evaluating:
+  real_images: /root/autodl-tmp/imagenet_50classes/train
+  generated_images: samples/student
+
+log: log.txt
